@@ -259,3 +259,7 @@ poetry.toml
 
 # LSP config files
 pyrightconfig.json
+
+# own Data
+
+user.txt
