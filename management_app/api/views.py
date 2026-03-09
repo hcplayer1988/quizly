@@ -156,3 +156,13 @@ class QuizCreateView(APIView):
             )
 
 
+class QuizListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        quizzes = Quiz.objects.filter(user=request.user).order_by('-created_at')
+        serializer = QuizSerializer(quizzes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
