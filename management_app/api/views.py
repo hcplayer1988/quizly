@@ -187,4 +187,30 @@ class QuizDetailView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class QuizUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, id):
+        try:
+            quiz = Quiz.objects.get(id=id)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if quiz.user != request.user:
+            return Response(
+                {"detail": "Access denied. This quiz does not belong to you."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = QuizSerializer(quiz, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
