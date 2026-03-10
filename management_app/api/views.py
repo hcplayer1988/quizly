@@ -87,15 +87,12 @@ Transcript:
 {transcript}"""
 
     response = client.models.generate_content(
-        #model="gemini-2.0-flash",
-        #model="gemini-1.5-flash",
         model="gemini-2.5-flash-lite",
         contents=prompt
     )
 
     raw = response.text.strip()
 
-    # Markdown Code-Blöcke entfernen
     raw = re.sub(r'^```(?:json)?\s*', '', raw, flags=re.IGNORECASE)
     raw = re.sub(r'\s*```$', '', raw)
     raw = raw.strip()
