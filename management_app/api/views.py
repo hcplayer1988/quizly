@@ -7,6 +7,8 @@ import json
 
 from google import genai
 
+from django.conf import settings
+
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -29,21 +31,26 @@ def build_youtube_url(video_id):
 
 
 def download_audio(youtube_url):
-    tmp_file = tempfile.NamedTemporaryFile(suffix='.mp3', delete=False)
-    tmp_filename = tmp_file.name
-    tmp_file.close()
+    tmp_dir = tempfile.mkdtemp()
+    tmp_filename = os.path.join(tmp_dir, 'audio.%(ext)s')
 
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": tmp_filename,
         "quiet": True,
         "noplaylist": True,
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }],
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([youtube_url])
 
-    return tmp_filename
+    output_path = os.path.join(tmp_dir, 'audio.mp3')
+    return output_path
 
 
 def transcribe_audio(file_path):
@@ -53,7 +60,7 @@ def transcribe_audio(file_path):
 
 
 def generate_quiz_with_gemini(transcript):
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
     prompt = f"""Based on the following transcript, generate a quiz in valid JSON format.
 The quiz must follow this exact structure:
@@ -80,7 +87,9 @@ Transcript:
 {transcript}"""
 
     response = client.models.generate_content(
-        model="gemini-2.0-flash",
+        #model="gemini-2.0-flash",
+        #model="gemini-1.5-flash",
+        model="gemini-2.5-flash-lite",
         contents=prompt
     )
 
