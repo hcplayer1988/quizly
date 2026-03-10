@@ -2,9 +2,10 @@ import os
 import re
 import tempfile
 import whisper
-import google.generativeai as genai
 import yt_dlp
 import json
+
+from google import genai
 
 from rest_framework import status
 from rest_framework.views import APIView
@@ -52,8 +53,7 @@ def transcribe_audio(file_path):
 
 
 def generate_quiz_with_gemini(transcript):
-    genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
     prompt = f"""Based on the following transcript, generate a quiz in valid JSON format.
 The quiz must follow this exact structure:
@@ -79,7 +79,11 @@ Requirements:
 Transcript:
 {transcript}"""
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt
+    )
+
     raw = response.text.strip()
 
     # Markdown Code-Blöcke entfernen
@@ -90,8 +94,13 @@ Transcript:
     return raw
 
 
-class QuizCreateView(APIView):
+class QuizListCreateView(APIView):
     permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        quizzes = Quiz.objects.filter(user=request.user).order_by('-created_at')
+        serializer = QuizSerializer(quizzes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
         url = request.data.get('url')
@@ -156,15 +165,6 @@ class QuizCreateView(APIView):
             )
 
 
-class QuizListView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        quizzes = Quiz.objects.filter(user=request.user).order_by('-created_at')
-        serializer = QuizSerializer(quizzes, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class QuizDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -185,10 +185,6 @@ class QuizDetailView(APIView):
 
         serializer = QuizSerializer(quiz)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class QuizUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
 
     def patch(self, request, id):
         try:
@@ -211,6 +207,24 @@ class QuizUpdateView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, id):
+        try:
+            quiz = Quiz.objects.get(id=id)
+        except Quiz.DoesNotExist:
+            return Response(
+                {"detail": "Quiz not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if quiz.user != request.user:
+            return Response(
+                {"detail": "Access denied. This quiz does not belong to you."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        quiz.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 
