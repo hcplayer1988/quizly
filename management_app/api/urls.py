@@ -1,5 +1,6 @@
-"""Url's for Quiz-Management API endpoints."""
+"""URL configuration for Quiz-Management API endpoints."""
 from django.urls import path
+
 from .views import QuizListCreateView, QuizDetailView
 
 urlpatterns = [

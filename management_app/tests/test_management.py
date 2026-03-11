@@ -202,3 +202,4 @@ class QuizDeleteTests(ManagementTestCase):
         self.client.cookies.clear()
         response = self.client.delete(self.detail_url)
         self.assertEqual(response.status_code, 401)
+        

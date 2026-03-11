@@ -1,9 +1,11 @@
 """Serializers for Quiz-Management API endpoints."""
 from rest_framework import serializers
+
 from management_app.models import Quiz, Question
 
 
 class QuestionSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Question
         fields = ['id', 'question_title', 'question_options', 'answer', 'created_at', 'updated_at']
@@ -14,5 +16,5 @@ class QuizSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title','description', 'created_at', 'updated_at', 'video_url', 'questions']
+        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'video_url', 'questions']
 

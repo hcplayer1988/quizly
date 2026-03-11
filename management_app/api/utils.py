@@ -90,3 +90,4 @@ Transcript:
     raw = raw.strip()
 
     return raw
+
