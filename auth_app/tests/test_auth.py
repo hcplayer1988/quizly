@@ -1,3 +1,4 @@
+"""Tests for authentication API endpoints."""
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework.test import APITestCase
@@ -146,3 +147,4 @@ class TokenRefreshTests(AuthTestCase):
         self.client.cookies['refresh_token'] = 'invalidtoken'
         response = self.client.post(self.refresh_url)
         self.assertEqual(response.status_code, 401)
+        

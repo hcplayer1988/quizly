@@ -1,4 +1,6 @@
+"""URL configuration for authentication API endpoints."""
 from django.urls import path
+
 from .views import RegisterView, LoginView, LogoutView, CookieTokenRefreshView
 
 urlpatterns = [
@@ -7,3 +9,4 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('token/refresh/', CookieTokenRefreshView.as_view(), name='token_refresh'),
 ]
+

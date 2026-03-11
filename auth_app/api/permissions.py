@@ -4,6 +4,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 
 class CookieJWTAuthentication(JWTAuthentication):
+
     def authenticate(self, request):
         access_token = request.COOKIES.get('access_token')
 
@@ -15,3 +16,4 @@ class CookieJWTAuthentication(JWTAuthentication):
             return self.get_user(validated_token), validated_token
         except (InvalidToken, TokenError):
             return None
+        
