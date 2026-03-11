@@ -85,9 +85,9 @@ class QuizListTests(ManagementTestCase):
 class QuizCreateTests(ManagementTestCase):
 
     @patch('management_app.api.views.os.remove')
-    @patch('management_app.api.views.generate_quiz_with_gemini')
-    @patch('management_app.api.views.transcribe_audio')
-    @patch('management_app.api.views.download_audio')
+    @patch('management_app.api.utils.generate_quiz_with_gemini')
+    @patch('management_app.api.utils.transcribe_audio')
+    @patch('management_app.api.utils.download_audio')
     def test_create_quiz_success(self, mock_download, mock_transcribe, mock_gemini, mock_remove):
         import json
         mock_download.return_value = '/tmp/audio.mp3'
@@ -111,7 +111,7 @@ class QuizCreateTests(ManagementTestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['detail'], 'Invalid YouTube URL.')
 
-    @patch('management_app.api.views.download_audio', side_effect=Exception('Download failed'))
+    @patch('management_app.api.utils.download_audio', side_effect=Exception('Download failed'))
     def test_create_quiz_download_error(self, mock_download):
         response = self.client.post(self.list_url, {
             'url': 'https://www.youtube.com/watch?v=6Lef1CRNSCY'
@@ -119,10 +119,10 @@ class QuizCreateTests(ManagementTestCase):
         self.assertEqual(response.status_code, 500)
         self.assertIn('Error processing video', response.data['detail'])
 
-    @patch('management_app.api.views.generate_quiz_with_gemini', side_effect=Exception('Gemini failed'))
-    @patch('management_app.api.views.transcribe_audio', return_value='transcript')
+    @patch('management_app.api.utils.generate_quiz_with_gemini', side_effect=Exception('Gemini failed'))
+    @patch('management_app.api.utils.transcribe_audio', return_value='transcript')
     @patch('management_app.api.views.os.remove')
-    @patch('management_app.api.views.download_audio', return_value='/tmp/audio.mp3')
+    @patch('management_app.api.utils.download_audio', return_value='/tmp/audio.mp3')
     def test_create_quiz_gemini_error(self, mock_download, mock_remove, mock_transcribe, mock_gemini):
         response = self.client.post(self.list_url, {
             'url': 'https://www.youtube.com/watch?v=6Lef1CRNSCY'
