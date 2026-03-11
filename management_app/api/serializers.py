@@ -1,3 +1,4 @@
+"""Serializers for Quiz-Management API endpoints."""
 from rest_framework import serializers
 from management_app.models import Quiz, Question
 

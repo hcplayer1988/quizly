@@ -1,3 +1,4 @@
+"""Views for Quiz-Management API endpoints."""
 import os
 import re
 import tempfile
