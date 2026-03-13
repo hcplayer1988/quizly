@@ -1,14 +1,14 @@
 """Serializers for authentication API endpoints."""
-from rest_framework import serializers
+ 
 from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-
+from rest_framework import serializers
+ 
 User = get_user_model()
-
-
+ 
+ 
 class RegistrationSerializer(serializers.ModelSerializer):
     confirmed_password = serializers.CharField(write_only=True)
-
+ 
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'confirmed_password']
@@ -16,18 +16,18 @@ class RegistrationSerializer(serializers.ModelSerializer):
             'password': {'write_only': True},
             'email': {'required': True},
         }
-
+ 
     def validate_confirmed_password(self, value):
         password = self.initial_data.get('password')
         if password and value and password != value:
             raise serializers.ValidationError('Passwords do not match')
         return value
-
+ 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('Email already exists')
         return value
-
+ 
     def save(self):
         pw = self.validated_data['password']
         account = User(
@@ -37,8 +37,4 @@ class RegistrationSerializer(serializers.ModelSerializer):
         account.set_password(pw)
         account.save()
         return account
-
-
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    pass
 
