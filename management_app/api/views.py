@@ -1,15 +1,14 @@
 """Views for Quiz-Management API endpoints."""
-import os
-import json
  
 from rest_framework import status
-from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
  
-from management_app.models import Quiz, Question
-from .serializers import QuizSerializer, QuizBriefSerializer
-from .utils import extract_video_id, build_youtube_url, download_audio, transcribe_audio, generate_quiz_with_gemini
+from management_app.models import Quiz
+ 
+from .serializers import QuizBriefSerializer, QuizSerializer
+from .services import create_quiz_from_url, get_quiz_for_user
  
  
 class QuizListCreateView(APIView):
@@ -21,66 +20,21 @@ class QuizListCreateView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
  
     def post(self, request):
-        url = request.data.get('url')
- 
-        if not url:
+        try:
+            quiz = create_quiz_from_url(request.data.get('url'), request.user)
+        except ValueError as e:
             return Response(
-                {"detail": "URL is required."},
+                {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
- 
-        video_id = extract_video_id(url)
-        if not video_id:
-            return Response(
-                {"detail": "Invalid YouTube URL."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
- 
-        clean_url = build_youtube_url(video_id)
- 
-        try:
-            audio_path = download_audio(clean_url)
-            transcript = transcribe_audio(audio_path)
-            os.remove(audio_path)
         except Exception as e:
             return Response(
-                {"detail": f"Error processing video: {str(e)}"},
+                {"detail": f"Error creating quiz: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
  
-        try:
-            raw = generate_quiz_with_gemini(transcript)
-            quiz_data = json.loads(raw)
-        except Exception as e:
-            return Response(
-                {"detail": f"Error generating quiz: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
- 
-        try:
-            quiz = Quiz.objects.create(
-                user=request.user,
-                title=quiz_data['title'],
-                description=quiz_data['description'],
-                video_url=clean_url
-            )
- 
-            for q in quiz_data['questions']:
-                Question.objects.create(
-                    quiz=quiz,
-                    question_title=q['question_title'],
-                    question_options=q['question_options'],
-                    answer=q['answer']
-                )
- 
-            serializer = QuizSerializer(quiz)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
- 
-        except Exception as e:
-            return Response(
-                {"detail": f"Error saving quiz: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        serializer = QuizSerializer(quiz)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
  
  
 class QuizDetailView(APIView):
@@ -88,16 +42,15 @@ class QuizDetailView(APIView):
  
     def get(self, request, id):
         try:
-            quiz = Quiz.objects.get(id=id)
+            quiz = get_quiz_for_user(id, request.user)
         except Quiz.DoesNotExist:
             return Response(
                 {"detail": "Quiz not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
- 
-        if quiz.user != request.user:
+        except PermissionError as e:
             return Response(
-                {"detail": "Access denied. This quiz does not belong to you."},
+                {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
  
@@ -106,16 +59,15 @@ class QuizDetailView(APIView):
  
     def patch(self, request, id):
         try:
-            quiz = Quiz.objects.get(id=id)
+            quiz = get_quiz_for_user(id, request.user)
         except Quiz.DoesNotExist:
             return Response(
                 {"detail": "Quiz not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
- 
-        if quiz.user != request.user:
+        except PermissionError as e:
             return Response(
-                {"detail": "Access denied. This quiz does not belong to you."},
+                {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
  
@@ -128,16 +80,15 @@ class QuizDetailView(APIView):
  
     def delete(self, request, id):
         try:
-            quiz = Quiz.objects.get(id=id)
+            quiz = get_quiz_for_user(id, request.user)
         except Quiz.DoesNotExist:
             return Response(
                 {"detail": "Quiz not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
- 
-        if quiz.user != request.user:
+        except PermissionError as e:
             return Response(
-                {"detail": "Access denied. This quiz does not belong to you."},
+                {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
  
