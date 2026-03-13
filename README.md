@@ -34,8 +34,7 @@ A Django REST Framework backend that converts YouTube videos into AI-generated q
   - [2. YouTube Audio Processing](#2-youtube-audio-processing)
   - [3. Whisper Transcription](#3-whisper-transcription)
   - [4. Gemini Quiz Generation](#4-gemini-quiz-generation)
-  - [5. Deno & yt-dlp JS Challenge Solving](#5-deno--yt-dlp-js-challenge-solving)
-  - [6. CORS Configuration](#6-cors-configuration)
+  - [5. CORS Configuration](#5-cors-configuration)
 - [Admin Panel](#admin-panel)
 - [Development](#development)
   - [Code Style](#code-style)
@@ -67,8 +66,6 @@ A Django REST Framework backend that converts YouTube videos into AI-generated q
 - **Django REST Framework**
 - **SimpleJWT** for JWT authentication with token blacklisting
 - **yt-dlp** for YouTube audio downloading
-- **yt-dlp-ejs** for JavaScript challenge solving
-- **Deno** runtime for yt-dlp JS challenge support
 - **OpenAI Whisper** for audio transcription
 - **Google Gemini** (`google-genai`) for quiz generation
 - **SQLite Database** (easily switchable to PostgreSQL)
@@ -118,16 +115,13 @@ quizly/
 - pip (Python package manager)
 - Virtual environment (recommended)
 - FFmpeg installed and available in PATH
-- Deno runtime (required for yt-dlp JS challenge solving)
+- Node.js installed and available in PATH
 
 **Install FFmpeg (Windows):**
 Download from https://ffmpeg.org/download.html and add to system PATH.
 
-**Install Deno (Windows):**
-```bash
-winget install DenoLand.Deno
-```
-After installation, add Deno to your system PATH permanently via Windows Environment Variables.
+**Install Node.js (Windows):**
+Download from https://nodejs.org/ and follow the installer. Node.js is added to PATH automatically.
 
 ### 1. Clone the Repository
 
@@ -164,7 +158,6 @@ google-genai==1.66.0
 openai-whisper==20250625
 python-decouple==3.8
 yt-dlp==2026.3.3
-yt-dlp-ejs==0.5.0
 ```
 
 ### 4. Environment Configuration
@@ -207,13 +200,7 @@ python manage.py createsuperuser
 
 ### 7. Start Development Server
 
-**IMPORTANT**: Deno must be available in PATH before starting the server. On Windows, set the PATH in the same terminal session if not permanently configured:
-
 ```bash
-# Windows (temporary PATH - only needed if Deno not in system PATH)
-$env:PATH += ";C:\path\to\deno"
-
-# Then start server
 python manage.py runserver
 ```
 
@@ -403,6 +390,8 @@ Quiz creation follows this pipeline:
 5. Generate quiz with Gemini
 6. Save quiz and questions to database
 
+yt-dlp uses the `mweb` and `android` player clients to bypass YouTube's bot protection — no additional runtime (e.g. Deno) is required.
+
 **Supported URL formats:**
 - `https://www.youtube.com/watch?v=VIDEO_ID`
 - `https://youtu.be/VIDEO_ID`
@@ -420,7 +409,7 @@ Whisper runs locally on CPU. This means:
 
 ### 4. Gemini Quiz Generation
 
-The quiz is generated using `gemini-2.5-flash`. The prompt enforces:
+The quiz is generated using `gemini-2.5-flash-lite`. The prompt enforces:
 
 - Exactly 10 questions per quiz
 - Exactly 4 answer options per question
@@ -433,29 +422,7 @@ The quiz is generated using `gemini-2.5-flash`. The prompt enforces:
 
 If you hit the daily limit, wait until midnight UTC or create a new Google Cloud project with a fresh API key.
 
-### 5. Deno & yt-dlp JS Challenge Solving
-
-YouTube uses JavaScript challenges to protect against bots. yt-dlp requires the `yt-dlp-ejs` package and the Deno runtime to solve these challenges.
-
-**Setup:**
-
-1. Install `yt-dlp-ejs`:
-```bash
-pip install yt-dlp-ejs
-```
-
-2. Install Deno and add it to your **system PATH permanently** (Windows):
-   - Open: System Properties → Environment Variables → Path → New
-   - Add the path to your Deno executable directory
-
-3. Verify Deno is available:
-```bash
-deno --version
-```
-
-Without Deno in PATH, yt-dlp will fail with format errors.
-
-### 6. CORS Configuration
+### 5. CORS Configuration
 
 **CRITICAL**: Disable any "Allow CORS" browser extensions!
 
@@ -523,16 +490,15 @@ External services (yt-dlp, Whisper, Gemini) are mocked in tests — no real API 
 
 **Symptoms:**
 ```
-ERROR: [youtube] VIDEO_ID: Video unavailable
-WARNING: n challenge solving failed
+ERROR: [youtube] VIDEO_ID: Requested format is not available
+WARNING: [youtube] Skipping unsupported client
 ```
 
 **Solution:**
-1. Ensure Deno is installed and available in PATH
-2. Ensure `yt-dlp-ejs` is installed: `pip install yt-dlp-ejs`
-3. Restart the terminal and server after adding Deno to PATH
-4. Try a different public YouTube video
-5. Update yt-dlp: `pip install -U yt-dlp`
+1. Update yt-dlp to the latest version: `pip install -U yt-dlp`
+2. Ensure FFmpeg is installed and in PATH: `ffmpeg -version`
+3. Try a different public YouTube video
+4. Ensure Node.js is installed: `node --version`
 
 ### Issue: Gemini API quota exceeded
 
